@@ -96,7 +96,6 @@ if __name__ == '__main__':
 
     best_epoch = 0
     min_loss = float('inf')
-    #epoch_eps = torch.randn(pre_emb.size(0), hid_dim)
     
     for n_d in range(num_dataset):
         [train_pos_candidate, train_candidate, train_user, train_mask, train_label] = data.pre_train_behaviors()
@@ -104,11 +103,6 @@ if __name__ == '__main__':
         train_loader = Data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
 
         for n_ep in range(num_epoch):
-
-        # n_ep = 0
-        # while True:
-        #     n_ep += 1
-
             acc, all = 0, 0
             t0 = time.time()
             loss_per_epoch = []
@@ -132,14 +126,10 @@ if __name__ == '__main__':
                 aug_label = aug_label.to(logits.device)
                 aug_loss = criterion(aug_logits, aug_label)
 
-                # Triplet Loss
-                # logits, aug_loss = model(pos, candidate, user_his, training = True)
-                # aug_loss = torch.mean(aug_loss, dim = 0)
-
                 bce_loss = criterion(logits, label)
                 loss = bce_loss + 0.1 * aug_loss
                 loss.backward()
-                # nn.utils.clip_grad_norm_(model.parameters(), max_norm = 1, norm_type = 2)
+                nn.utils.clip_grad_norm_(model.parameters(), max_norm = 1, norm_type = 2)
 
                 optimizer.step()
 

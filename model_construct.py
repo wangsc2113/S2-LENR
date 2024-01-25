@@ -120,9 +120,13 @@ class Predictor(nn.Module):
         # nn.init.normal_(self.prototype.data, std = 0.02)
         # self.layer_norm1 = nn.LayerNorm(hid_dim)
         # self.layer_norm2 = nn.LayerNorm(hid_dim)
+        self.w1 = nn.Parameter(torch.Tensor(hid_dim, 1))
+        self.w2 = nn.Parameter(torch.Tensor(hid_dim, 1))
+        self.w3 = nn.Parameter(torch.Tensor(hid_dim, hid_dim
+        nn.init.xavier_uniform_(self.w1.data, gain=1.414)
+        nn.init.xavier_uniform_(self.w2.data, gain=1.414)
+        nn.init.xavier_uniform_(self.w3.data, gain=1.414)
 
-    def QuickGELU(self, x):
-        return x * torch.sigmoid(1.702 * x)
 
     def Discri(self, pos_rep, user_rep):
         return torch.matmul(pos_rep.unsqueeze(dim = 1), user_rep.unsqueeze(dim = 2)).reshape(user_rep.size(0), 1)
@@ -143,14 +147,11 @@ class Predictor(nn.Module):
         # gen_rep = self.layer_norm2(torch.matmul(gen_rep, self.W))
         gen_rep = gen_rep.reshape(gen_batch * gen_length, self.hid_dim)
 
-        # attention聚合
-        weight = torch.matmul(self.prototype, gen_rep.transpose(-1, -2))  # [1000, 150]
-        att = F.softmax(weight, dim = 1)
+        att = torch.matmul(self.prototype.unsqueeze(dim = 1).repeat(1, gen_rep.size(0), 1), self.w1) + torch.matmul(gen_rep.unsqueeze(dim = 0).repeat(self.num_prototype, 1, 1), self.w2)
+        att = F.softmax(att, dim = 1)
+        self.prototype.data = F.relu(self.prototype + torch.matmul(torch.matmul(att.transpose(-1, -2), gen_rep).squeeze(dim = 1), self.w3))
         
-        # self.prototype.data = (self.prototype.data + torch.matmul(att, gen_rep)) / 2
-        # self.prototype.data = torch.mul(self.prototype, torch.sigmoid(self.W)) + torch.mul(torch.matmul(att, gen_rep), 1 - torch.sigmoid(self.W))
-        self.prototype.data = torch.matmul(self.prototype, self.W) + torch.matmul(att, gen_rep)
-
+        weight = torch.matmul(self.prototype, gen_rep.transpose(-1, -2))
         values, indices = torch.max(weight, dim = 0)
         gen_rep = self.prototype[indices].reshape(gen_batch, gen_length, self.hid_dim)
 

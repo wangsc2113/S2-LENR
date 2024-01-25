@@ -6,7 +6,6 @@ import random
 import torch
 import json
 import pickle
-from scipy.sparse import coo_matrix, find, save_npz, load_npz, csr_matrix
 
 #import nltk
 #nltk.download('punkt')
